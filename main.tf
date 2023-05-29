@@ -60,19 +60,19 @@ resource "aws_s3_bucket_policy" "static" {
   policy = file("s3_static_policy.json")
 }
 
-data "aws_iam_policy_document" "static" {
-  statement {
-    actions   = ["s3:GetObject"]
-    resources = ["${aws_s3_bucket.static.arn}/*"]
+# data "aws_iam_policy_document" "static" {
+#   statement {
+#     actions   = ["s3:GetObject"]
+#     resources = ["${aws_s3_bucket.static.arn}/*"]
 
-    principals {
-      type = "*"
-      identifiers = ["*"]
-    }
-  }
-}
+#     principals {
+#       type = "*"
+#       identifiers = ["*"]
+#     }
+#   }
+# }
 
-resource "aws_s3_bucket_policy" "static" {
-  bucket = aws_s3_bucket.static.id
-  policy = data.aws_iam_policy_document.static.json
-}
+# resource "aws_s3_bucket_policy" "static" {
+#   bucket = aws_s3_bucket.static.id
+#   policy = data.aws_iam_policy_document.static.json
+# }
