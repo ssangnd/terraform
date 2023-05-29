@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     aws = {
-      source = "hashicorp/aws"
+      source  = "hashicorp/aws"
       version = "4.44.0"
     }
   }
@@ -11,68 +11,41 @@ provider "aws" {
   region = "us-west-2"
 }
 
-resource "aws_s3_bucket" "static" {
-  bucket        = "terraform-series-bai3sangnd"
-  force_destroy = true
-}
-# 
-resource "aws_s3_bucket_ownership_controls" "static" {
-  bucket = aws_s3_bucket.static.id
-  rule {
-    object_ownership = "BucketOwnerPreferred"
+resource "aws_vpc" "vpc" {
+  cidr_block = "10.0.0.0/16"
+  enable_dns_hostnames = true
+
+    tags = {
+    "Name" = "custom"
   }
 }
 
-resource "aws_s3_bucket_public_access_block" "static" {
-  bucket = aws_s3_bucket.static.id
+resource "aws_subnet" "private_subnet_2a" {
+  vpc_id     = aws_vpc.vpc.id
+  cidr_block = "10.0.1.0/24"
+  availability_zone = "us-west-2a"
 
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
-}
-
-resource "aws_s3_bucket_acl" "static" {
-  depends_on = [
-    aws_s3_bucket_ownership_controls.static,
-    aws_s3_bucket_public_access_block.static,
-  ]
-
-  bucket = aws_s3_bucket.static.id
-  acl    = "public-read"
-}
-# 
-
-resource "aws_s3_bucket_website_configuration" "static" {
-  bucket = aws_s3_bucket.static.bucket
-
-  index_document {
-    suffix = "index.html"
-  }
-
-  error_document {
-    key = "error.html"
+  tags = {
+    "Name" = "private-subnet"
   }
 }
 
-resource "aws_s3_bucket_policy" "static" {
-  bucket = aws_s3_bucket.static.id
-  policy = file("s3_static_policy.json")
+resource "aws_subnet" "private_subnet_2b" {
+  vpc_id     = aws_vpc.vpc.id
+  cidr_block = "10.0.2.0/24"
+  availability_zone = "us-west-2b"
+
+  tags = {
+    "Name" = "private-subnet"
+  }
 }
 
-# data "aws_iam_policy_document" "static" {
-#   statement {
-#     actions   = ["s3:GetObject"]
-#     resources = ["${aws_s3_bucket.static.arn}/*"]
+resource "aws_subnet" "private_subnet_2c" {
+  vpc_id     = aws_vpc.vpc.id
+  cidr_block = "10.0.3.0/24"
+  availability_zone = "us-west-2c"
 
-#     principals {
-#       type = "*"
-#       identifiers = ["*"]
-#     }
-#   }
-# }
-
-# resource "aws_s3_bucket_policy" "static" {
-#   bucket = aws_s3_bucket.static.id
-#   policy = data.aws_iam_policy_document.static.json
-# }
+  tags = {
+    "Name" = "private-subnet"
+  }
+}
