@@ -49,7 +49,7 @@ resource "aws_route_table" "public" {
   }
 
   tags = {
-    "Name" = "Public-Terraform"
+    "Name" = "Public-Rb-Terraform"
   }
 }
 
@@ -60,7 +60,7 @@ resource "aws_subnet" "public_subnet" {
   availability_zone = "us-west-2a"
 
   tags = {
-    "Name" = "public-subnet-Terraform"
+    "Name" = "Public-Subnet-Terraform"
   }
   # map_public_ip_on_launch = true
 }
@@ -87,6 +87,14 @@ resource "aws_security_group" "allow_ssh" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # All traffic
+  ingress {
+    protocol  = -1
+    self      = true
+    from_port = 0
+    to_port   = 0
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -100,13 +108,37 @@ resource "aws_security_group" "allow_ssh" {
 }
 
 # resource "aws_security_group" "allow_all" {
-#   name        = "allow_all"
-#   description = "Allow all inbound traffic"
+# vpc_id      = aws_vpc.vpc.id
+# name        = "allow_all"
+# description = "Allow all inbound traffic"
+
+# # All TCP Port
+# ingress {
+#   from_port   = 0
+#   to_port     = 65535
+#   protocol    = "tcp"
+#   cidr_blocks = ["0.0.0.0/0"]
+# }
+
+# # All traffic
+# ingress {
+#   protocol  = -1
+#   self      = true
+#   from_port = 0
+#   to_port   = 0
+# }
 
 #   ingress {
+#   from_port   = 80
+#   to_port     = 80
+#   protocol    = "tcp"
+#   cidr_blocks = ["0.0.0.0/0"]
+# }
+
+#   egress {
 #     from_port   = 0
-#     to_port     = 65535
-#     protocol    = "tcp"
+#     to_port     = 0
+#     protocol    = "-1"
 #     cidr_blocks = ["0.0.0.0/0"]
 #   }
 
@@ -135,7 +167,7 @@ resource "aws_instance" "EC2-Terraform-01" {
   tags = {
     Name = "EC2-Terraform-01"
   }
-  subnet_id = aws_subnet.public_subnet.id
+  subnet_id                   = aws_subnet.public_subnet.id
   associate_public_ip_address = true
 }
 
@@ -147,6 +179,7 @@ resource "aws_instance" "EC2-Terraform-02" {
   tags = {
     Name = "EC2-Terraform-02"
   }
-  subnet_id = aws_subnet.public_subnet.id
+  subnet_id                   = aws_subnet.public_subnet.id
   associate_public_ip_address = true
 }
+
