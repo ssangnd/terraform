@@ -183,3 +183,60 @@ resource "aws_instance" "EC2-Terraform-02" {
   associate_public_ip_address = true
 }
 
+
+resource "aws_subnet" "private_subnet" {
+  vpc_id     = aws_vpc.vpc.id
+  cidr_block = "10.0.2.0/24"
+  availability_zone = "us-west-2b"
+
+  tags = {
+    "Name" = "Private-Subnet-Terraform"
+  }
+}
+
+resource "aws_eip" "nat" {
+  vpc = true
+}
+
+resource "aws_nat_gateway" "public" {
+  depends_on = [aws_internet_gateway.ig]
+
+  allocation_id = aws_eip.nat.id
+  subnet_id     = aws_subnet.public_subnet.id
+
+  tags = {
+    Name = "Public NAT in Public Subnet"
+  }
+}
+
+# Create Route Table assign to NAT
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.vpc.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_nat_gateway.public.id
+  }
+
+  tags = {
+    "Name" = "Private_Rb_Terraform"
+  }
+}
+
+resource "aws_route_table_association" "private-association" {
+  subnet_id      = aws_subnet.private_subnet.id
+  route_table_id = aws_route_table.private.id
+}
+
+
+resource "aws_instance" "EC2-Terraform-03" {
+  ami                    = data.aws_ami.ubuntu.id
+  instance_type          = "t2.micro"
+  vpc_security_group_ids = [aws_security_group.allow_ssh.id]
+  key_name               = aws_key_pair.key_pair.key_name
+  tags = {
+    Name = "EC2-Terraform-03"
+  }
+  subnet_id = aws_subnet.private_subnet.id
+  # associate_public_ip_address = true
+}
