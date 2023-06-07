@@ -297,6 +297,7 @@ resource "aws_security_group" "allow_all_traffic" {
     Name = "SG_Terraform_All_Traffic"
   }
 }
+
 resource "aws_instance" "EC2-Terraform-03" {
   ami           = data.aws_ami.ubuntu.id
   instance_type = "t2.micro"
@@ -310,3 +311,59 @@ resource "aws_instance" "EC2-Terraform-03" {
   subnet_id = aws_subnet.private_subnet.id
   # associate_public_ip_address = true
 }
+
+#create a security group for RDS Database Instance
+resource "aws_security_group" "rds_sg" {
+  name   = "rds_sg"
+  vpc_id = aws_vpc.vpc.id
+  ingress {
+    from_port   = 3306
+    to_port     = 3306
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    from_port   = 8
+    to_port     = 0
+    protocol    = "icmp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  tags = {
+    Name = "SG_RDS_Terraform"
+  }
+}
+
+#make rds subnet group
+resource "aws_db_subnet_group" "rdssubnet" {
+  name = "database subnet"
+  #subnet_ids  = [aws_subnet.rds_subnet_[0].id, aws_subnet.rds_subnet_[1].id, aws_subnet.rds_subnet_[2].id]
+  subnet_ids = [aws_subnet.private_subnet.id, aws_subnet.public_subnet.id]
+}
+
+# #create a RDS Database Instance
+resource "aws_db_instance" "database" {
+  engine               = "mysql"
+  identifier           = "database"
+  allocated_storage    = 20
+  engine_version       = "5.7"
+  instance_class       = "db.t2.micro"
+  username             = "sangnd"
+  password             = "12345678"
+  parameter_group_name = "default.mysql5.7"
+  # vpc_security_group_ids = ["${aws_security_group.rds_sg.id}"]
+  vpc_security_group_ids = [aws_security_group.rds_sg.id]
+  skip_final_snapshot    = true
+  publicly_accessible    = true
+  db_subnet_group_name   = aws_db_subnet_group.rdssubnet.name
+}
+
+# sudo apt install mysql-server
+# SELECT table_name FROM information_schema.tables;
+# mysql -u sangnd -h database.cdotunbathmn.us-west-2.rds.amazonaws.com  -p
