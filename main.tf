@@ -202,47 +202,47 @@ resource "aws_subnet" "private_subnet" {
   }
 }
 
-# resource "aws_eip" "nat" {
-#   vpc = true
-# }
+resource "aws_eip" "nat" {
+  vpc = true
+}
 
-# resource "aws_nat_gateway" "public" {
-#   depends_on = [aws_internet_gateway.ig]
+resource "aws_nat_gateway" "public" {
+  depends_on = [aws_internet_gateway.ig]
 
-#   allocation_id = aws_eip.nat.id
-#   subnet_id     = aws_subnet.public_subnet.id
+  allocation_id = aws_eip.nat.id
+  subnet_id     = aws_subnet.public_subnet.id
 
-#   tags = {
-#     Name = "Public NAT in Public Subnet"
-#   }
-# }
+  tags = {
+    Name = "Public NAT in Public Subnet"
+  }
+}
 
-# # Create Route Table assign to NAT
-# resource "aws_route_table" "private" {
-#   vpc_id = aws_vpc.vpc.id
-
-#   route {
-#     cidr_block = "0.0.0.0/0"
-#     gateway_id = aws_nat_gateway.public.id
-#   }
-
-#   tags = {
-#     "Name" = "Private_Rb_Terraform"
-#   }
-# }
-
+# Create Route Table assign to NAT
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.vpc.id
 
-  # route {
-  #   cidr_block = "0.0.0.0/0"
-  #   gateway_id = aws_nat_gateway.public.id
-  # }
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_nat_gateway.public.id
+  }
 
   tags = {
     "Name" = "Private_Rb_Terraform"
   }
 }
+
+# resource "aws_route_table" "private" {
+#   vpc_id = aws_vpc.vpc.id
+
+#   # route {
+#   #   cidr_block = "0.0.0.0/0"
+#   #   gateway_id = aws_nat_gateway.public.id
+#   # }
+
+#   tags = {
+#     "Name" = "Private_Rb_Terraform"
+#   }
+# }
 
 resource "aws_route_table_association" "private-association" {
   subnet_id      = aws_subnet.private_subnet.id
