@@ -13,14 +13,14 @@ provider "aws" {
 
 # Create SSH 
 
-resource "tls_private_key" "key" {
-  algorithm = "RSA"
-}
+# resource "tls_private_key" "key" {
+#   algorithm = "RSA"
+# }
 
-resource "aws_key_pair" "key_pair" {
-  key_name   = "terraform-key"
-  public_key = tls_private_key.key.public_key_openssh
-}
+# resource "aws_key_pair" "key_pair" {
+#   key_name   = "key_pair"
+#   public_key = tls_private_key.key.public_key_openssh
+# }
 
 resource "aws_vpc" "vpc" {
   cidr_block           = "10.0.0.0/16"
@@ -58,7 +58,6 @@ resource "aws_subnet" "public_subnet" {
   vpc_id            = aws_vpc.vpc.id
   cidr_block        = "10.0.1.0/24"
   availability_zone = "us-west-2a"
-
   tags = {
     "Name" = "Public-Subnet-Terraform"
   }
@@ -84,6 +83,13 @@ resource "aws_security_group" "allow_ssh" {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 8
+    to_port     = 0
+    protocol    = "icmp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -163,7 +169,8 @@ resource "aws_instance" "EC2-Terraform-01" {
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = "t2.micro"
   vpc_security_group_ids = [aws_security_group.allow_ssh.id]
-  key_name               = aws_key_pair.key_pair.key_name
+  # key_name               = aws_key_pair.key_pair.key_name
+  key_name = "key_pair"
   tags = {
     Name = "EC2-Terraform-01"
   }
@@ -171,22 +178,23 @@ resource "aws_instance" "EC2-Terraform-01" {
   associate_public_ip_address = true
 }
 
-resource "aws_instance" "EC2-Terraform-02" {
-  ami                    = data.aws_ami.ubuntu.id
-  instance_type          = "t2.micro"
-  vpc_security_group_ids = [aws_security_group.allow_ssh.id]
-  key_name               = aws_key_pair.key_pair.key_name
-  tags = {
-    Name = "EC2-Terraform-02"
-  }
-  subnet_id                   = aws_subnet.public_subnet.id
-  associate_public_ip_address = true
-}
+# resource "aws_instance" "EC2-Terraform-02" {
+#   ami                    = data.aws_ami.ubuntu.id
+#   instance_type          = "t2.micro"
+#   vpc_security_group_ids = [aws_security_group.allow_ssh.id]
+#   # key_name               = aws_key_pair.key_pair.key_name
+#   key_name               = "key_pair"
+#   tags = {
+#     Name = "EC2-Terraform-02"
+#   }
+#   subnet_id                   = aws_subnet.public_subnet.id
+#   associate_public_ip_address = true
+# }
 
 
 resource "aws_subnet" "private_subnet" {
-  vpc_id     = aws_vpc.vpc.id
-  cidr_block = "10.0.2.0/24"
+  vpc_id            = aws_vpc.vpc.id
+  cidr_block        = "10.0.2.0/24"
   availability_zone = "us-west-2b"
 
   tags = {
@@ -194,29 +202,42 @@ resource "aws_subnet" "private_subnet" {
   }
 }
 
-resource "aws_eip" "nat" {
-  vpc = true
-}
+# resource "aws_eip" "nat" {
+#   vpc = true
+# }
 
-resource "aws_nat_gateway" "public" {
-  depends_on = [aws_internet_gateway.ig]
+# resource "aws_nat_gateway" "public" {
+#   depends_on = [aws_internet_gateway.ig]
 
-  allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.public_subnet.id
+#   allocation_id = aws_eip.nat.id
+#   subnet_id     = aws_subnet.public_subnet.id
 
-  tags = {
-    Name = "Public NAT in Public Subnet"
-  }
-}
+#   tags = {
+#     Name = "Public NAT in Public Subnet"
+#   }
+# }
 
-# Create Route Table assign to NAT
+# # Create Route Table assign to NAT
+# resource "aws_route_table" "private" {
+#   vpc_id = aws_vpc.vpc.id
+
+#   route {
+#     cidr_block = "0.0.0.0/0"
+#     gateway_id = aws_nat_gateway.public.id
+#   }
+
+#   tags = {
+#     "Name" = "Private_Rb_Terraform"
+#   }
+# }
+
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.vpc.id
 
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_nat_gateway.public.id
-  }
+  # route {
+  #   cidr_block = "0.0.0.0/0"
+  #   gateway_id = aws_nat_gateway.public.id
+  # }
 
   tags = {
     "Name" = "Private_Rb_Terraform"
@@ -226,14 +247,63 @@ resource "aws_route_table" "private" {
 resource "aws_route_table_association" "private-association" {
   subnet_id      = aws_subnet.private_subnet.id
   route_table_id = aws_route_table.private.id
+
+  # for_each = toset([aws_subnet.public_subnet.id, aws_subnet.private_subnet.id])
+  # subnet_id      = each.value
+  # route_table_id = aws_route_table.private.id
+
 }
 
 
+resource "aws_security_group" "allow_all_traffic" {
+  vpc_id = aws_vpc.vpc.id
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 8
+    to_port     = 0
+    protocol    = "icmp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    protocol  = -1
+    self      = true
+    from_port = 0
+    to_port   = 0
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "SG_Terraform_All_Traffic"
+  }
+}
 resource "aws_instance" "EC2-Terraform-03" {
-  ami                    = data.aws_ami.ubuntu.id
-  instance_type          = "t2.micro"
-  vpc_security_group_ids = [aws_security_group.allow_ssh.id]
-  key_name               = aws_key_pair.key_pair.key_name
+  ami           = data.aws_ami.ubuntu.id
+  instance_type = "t2.micro"
+  # vpc_security_group_ids = [aws_security_group.allow_ssh.id]
+  vpc_security_group_ids = [aws_security_group.allow_all_traffic.id]
+  # key_name               = aws_key_pair.key_pair.key_name
+  key_name = "key_pair"
   tags = {
     Name = "EC2-Terraform-03"
   }
